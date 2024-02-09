@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake - Multi modes</title>
+  <style>
+    h1 {
+      margin: .1em;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .board {
+      position: relative;
+      width: 29.9em;
+      height: 29.9em;
+      padding: .1em;
+      display: grid;
+      gap: .1em;
+      grid-template-rows: 0fr repeat(50, .5em);
+      grid-template-columns: 0fr repeat(50, .5em);
+      background-color: black;
+      overflow: hidden;
+    }
+
+    .menu {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: White;
+    }
+
+    @keyframes breathe--snake {
+      50% {
+        background-color: black;
+      }
+    }
+    .snake {
+      position: relative;
+      background-color: green;
+      animation: breathe--snake 1.5s ease-in-out infinite;
+    }
+    .snake::after {
+      content: '';
+      position: absolute;
+      display: block;
+      background-color: black;
+      width: .25em;
+      height: .25em;
+      transform: translate(-50%, -50%);
+    }
+
+    @keyframes breathe--goal {
+      50% {
+        background-color: palevioletred;
+      }
+    }
+    .goal {
+      background-color: red;
+      border-radius: 100%;
+      animation: breathe--goal 1s ease-in-out infinite;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>More modes incoming...</h1>
+  <section class="board" id="board">
+    <div class="menu" id="menu">
+      <p class="menu__text" id="message">READY ?</p>
+      <button class="menu__btn" type="button" id="starter">GO !</button>
+    </div>
+  </section>
+
+  <script>
+    const Snake = {
+      board: document.getElementById('board'),
+      menu: document.getElementById('menu'),
+      message: document.getElementById('message'),
+      starter: document.getElementById('starter'),
+
+      snakeBody: [],
+      goal: null,
+      score: 0,
+      direction: 0,
+      lockDir: false,
+
+      gameInterval: null,
+
+      SnakePart: class {
+        constructor(row, col) {
+          this.el = document.createElement('div');
+          this.el.classList.add('snake');
+          this.el.style.gridRow = row;
+          this.el.style.gridColumn = col;
+          board.appendChild(this.el);
+        }
+
+        move(dir) {
+          switch (dir) {
+            case 0: this.el.style.gridRow--; break;
+            case 1: this.el.style.gridColumn++; break;
+            case 2: this.el.style.gridRow++; break;
+            case 3: this.el.style.gridColumn--; break;
+          }
+        }
+      },
+      Goal: class {
+        constructor(row, col) {
+          this.el = document.createElement('div');
+          this.el.classList.add('goal');
+          this.el.style.gridRow = row;
+          this.el.style.gridColumn = col;
+          board.appendChild(this.el);
+        }
+
+        fetch() {
+          const lastPart = Snake.snakeBody[Snake.snakeBody.length - 1];
+          let row = lastPart.el.style.gridRow;
+          let col = lastPart.el.style.gridColumn;
+          switch (Snake.direction) {
+            case 0: row--; break;
+            case 1: col--; break;
+            case 2: row++; break;
+            case 3: col++; break;
+          }
+          Snake.snakeBody.push(new Snake.SnakePart(row, col));
+          this.el.style.gridRow = Math.floor(Math.random() * 50) + 2;
+          this.el.style.gridColumn = Math.floor(Math.random() * 50) + 2;
+          Snake.score++;
+        }
+      },
+      checkCollision: function() {
+        if (parseInt(this.snakeBody[0].el.style.gridRow) < 2
+        || parseInt(this.snakeBody[0].el.style.gridColumn) < 2
+        || this.snakeBody[0].el.style.gridRow > 51
+        || this.snakeBody[0].el.style.gridColumn > 51) {
+          return true;
+        }
+        for (let i = 1; i < this.snakeBody.length; i++) {
+          if (this.snakeBody[0].el.style.gridRow == this.snakeBody[i].el.style.gridRow
+          && this.snakeBody[0].el.style.gridColumn == this.snakeBody[i].el.style.gridColumn) {
+            return true;
+          }
+        }
+        return false;
+      },
+      endGame: function() {
+        clearInterval(this.gameInterval);
+        this.menu.classList.remove('hidden');
+        this.message.textContent = `GAME OVER!\nScore: ${this.score}`;
+        this.starter.textContent = "Retry";
+      },
+      moveSnake: function() {
+        Snake.lockDir = false;
+        for (let i = Snake.snakeBody.length - 1; i > 0; i--) {
+          Snake.snakeBody[i].el.style.gridRow = Snake.snakeBody[i - 1].el.style.gridRow;
+          Snake.snakeBody[i].el.style.gridColumn = Snake.snakeBody[i - 1].el.style.gridColumn;
+        }
+        Snake.snakeBody[0].move(Snake.direction);
+
+        if (Snake.checkCollision()) {
+          Snake.endGame();
+          return;
+        }
+
+        if (Snake.snakeBody[0].el.style.gridRow == Snake.goal.el.style.gridRow
+        && Snake.snakeBody[0].el.style.gridColumn == Snake.goal.el.style.gridColumn) {
+          Snake.goal.fetch();
+        }
+      },
+      changeDir: function(ev) {
+        if (Snake.lockDir) return;
+        switch (ev.keyCode) {
+          case 38: if (Snake.direction != 2) Snake.direction = 0; break;
+          case 39: if (Snake.direction != 3) Snake.direction = 1; break;
+          case 40: if (Snake.direction != 0) Snake.direction = 2; break;
+          case 37: if (Snake.direction != 1) Snake.direction = 3; break;
+        }
+        Snake.lockDir = true;
+      },
+      startGame: function() {
+        for (const part of this.snakeBody) {
+          part.el.remove();
+        }
+        this.snakeBody = [];
+        if (this.goal) this.goal.el.remove();
+        this.goal = null;
+        this.score = 0;
+        this.direction = 0;
+
+        this.menu.classList.add('hidden');
+        this.snakeBody[0] = new this.SnakePart(25, 25);
+        this.goal = new this.Goal(Math.floor(Math.random() * 50) + 2, Math.floor(Math.random() * 50) + 2);
+        document.addEventListener('keydown', this.changeDir);
+        this.gameInterval = setInterval(this.moveSnake, 75);
+      },
+      init: function() {
+        this.starter.addEventListener('click', this.startGame.bind(this));
+      }
+    }
+    Snake.init();
+  </script>
+</body>
+
+</html>
