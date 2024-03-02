@@ -131,8 +131,13 @@
             case 3: col++; break;
           }
           Snake.snakeBody.push(new Snake.SnakePart(row, col));
-          this.el.style.gridRow = Math.floor(Math.random() * 50) + 2;
-          this.el.style.gridColumn = Math.floor(Math.random() * 50) + 2;
+          do {
+              row = Math.floor(Math.random() * 50) + 2;
+              col = Math.floor(Math.random() * 50) + 2;
+          } while (Snake.snakeBody.some(part => part.el.style.gridRow == row && part.el.style.gridColumn == col));
+
+          this.el.style.gridRow = row;
+          this.el.style.gridColumn = col;
           Snake.score++;
         }
       },
